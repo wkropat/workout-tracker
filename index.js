@@ -22,8 +22,8 @@ mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost/budget", {
 
 // Create a workout
 
-app.post("/api/workouts", ({ body }, res) => {
-    db.Workout.create(body)
+app.post("/api/workouts", (req, res) => {
+    db.Workout.create(req.body)
         .then(workout => {
             res.json(workout);
         }).catch(err => {
@@ -34,7 +34,7 @@ app.post("/api/workouts", ({ body }, res) => {
 
 // Read the combined weight of multiple exercises from the past seven workouts
 
-app.get("/api/workouts", ({ body }, res => {
+app.get("/api/workouts", (req, res) => {
     db.Workout.aggregate([
         {
             $match: {}
@@ -50,7 +50,7 @@ app.get("/api/workouts", ({ body }, res => {
             res.json(err);
         });
 
-}))
+})
 
 
 // Read the total duration of each workout from the past seven workouts on the stats page.
@@ -102,5 +102,5 @@ app.put("/api/workouts/:id", (req, res) => {
 })
 
 app.listen(PORT, () => {
-    console.log(`App running on port http://localhost:${PORT}!`);
+    console.log(`App running on port http://localhost:${PORT} !`);
 });
