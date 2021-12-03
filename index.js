@@ -1,6 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 require('dotenv').config();
+
 const PORT = process.env.PORT || 3000;
 const db = require("./models/workoutModel");
 const app = express();
@@ -23,70 +24,118 @@ mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost/", {
 // Create a workout
 
 app.post("/api/workouts", (req, res) => {
-    db.Workout.create(req.body)
-        .then(workout => {
-            res.json(workout);
-        }).catch(err => {
-            res.json(err);
+    // db.Workout.create(req.body)
+    //     .then(workout => {
+    //         res.json(workout);
+    //     }).catch(err => {
+    //         res.json(err);
 
+    //     });
+    db.create({
+        day: new Date(new Date().setDate(new Date().getDate())),
+        exercises: [],
+      })
+        .then((created) => {
+          res.json(created);
+        })
+        .catch((err) => {
+          res.json(err);
         });
 });
 
 // Read the combined weight of multiple exercises from the past seven workouts
 
 app.get("/api/workouts", (req, res) => {
-    db.Workout.aggregate([
-        {
-            $match: {}
-        }, {
-            $addFields: {
-                totalDuration: { $sum: "$exercises.duration" }
+    // db.Workout.aggregate([
+    //     {
+    //         $match: {}
+    //     }, {
+    //         $addFields: {
+    //             totalDuration: { $sum: "$exercises.duration" }
+    //         }
+    //     }])
+    //     .then(workout => {
+    //         res.json(workout);
+    //     })
+    //     .catch(err => {
+    //         res.json(err);
+    //     });
+        db.aggregate(
+            [
+              { $match: {} },
+              {
+                $addFields: {
+                  totalDuration: {
+                    $reduce: {
+                      input: "$exercises",
+                      initialValue: 0,
+                      in: {
+                        $add: ["$$value", "$$this.duration"],
+                      },
+                    },
+                  },
+                },
+              },
+            ],
+            (err, data) => {
+              if (err) {
+                res.json(err);
+              } else {
+                res.json(data);
+              }
             }
-        }])
-        .then(workout => {
-            res.json(workout);
-        })
-        .catch(err => {
-            res.json(err);
-        });
-
+          );
 })
 
+// Add data to exercises
+
+app.put("/api/workouts/:id", (req, res) => {
+    db.updateOne(
+      { _id: req.params.id },
+      { $push: { exercises: req.body } },
+      (error, success) => {
+        if (error) {
+          res.json(error);
+        } else {
+          res.json(success);
+        }
+      }
+    );
+  });
 
 // Read the total duration of each workout from the past seven workouts on the stats page.
-
 app.get("/api/workouts/range", (req, res) => {
-    db.Workout.aggregate([
-        {
-            $match: {}
-        }, {
-            $sort: { day: -1 }
-        }, {
-            $limit: 7
-        }, {
-            $addFields: {
-                totalWeight: { $sum: "$exercises.weight" },
-                totalDuration: { $sum: "$exercises.duration" }
-            }
-        }])
-        .then(workout => {
-            res.json(workout);
-        })
-        .catch(err => {
-            res.json(err);
-        });
-})
-
-// Redirects to the html
-app.get("/exercise", (req, res) => {
-    res.redirect("/exercise.html");
+    // Date within the last week
+    const d = new Date().setDate(new Date().getDate() - 7);
+  db.aggregate(
+    [
+      { $match: { day: { $gte: d } } },
+      {
+        $addFields: {
+          totalDuration: {
+            $reduce: {
+              input: "$exercises",
+              initialValue: 0,
+              in: {
+                $add: ["$$value", "$$this.duration"],
+              },
+            },
+          },
+        },
+      },
+    ],
+    (err, data) => {
+      if (err) {
+        res.json(err);
+      } else {
+        res.json(data);
+      }
+    }
+  );
 });
 
-app.get("/stats", (req, res) => {
-    res.redirect("/stats.html");
-});
+// Update workout by id
 
-// Update with request body
 app.put("/api/workouts/:id", (req, res) => {
     db.Workout.updateOne(
         { _id: req.params.id },
@@ -100,6 +149,15 @@ app.put("/api/workouts/:id", (req, res) => {
         }
     );
 })
+
+// Redirects to html
+app.get("/exercise", (req, res) => {
+    res.redirect("/exercise.html");
+});
+
+app.get("/stats", (req, res) => {
+    res.redirect("/stats.html");
+});
 
 app.listen(PORT, () => {
     console.log(`App running on port http://localhost:${PORT} !`);
