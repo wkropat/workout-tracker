@@ -6,7 +6,7 @@ This online workout tracker allows users to record both cardio and weight exerci
 
 [Github Repo](https://github.com/wkropat/workout-tracker)
 
-[Deployed on Heroku](https://wsk-workout.herokuapp.com/)
+[Deployed on Heroku](https://immense-springs-04386.herokuapp.com/ )
 
 ## Tech used
 
